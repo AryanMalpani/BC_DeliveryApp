@@ -11,9 +11,12 @@ import jwt
 from django.conf import settings
 from datetime import datetime, timedelta
 
-
-
 # Create your models here.
+
+# add new properties access_token, is_email_verified
+# use email and password instead of username/password
+#email should be made compulsory it is not by default in the default user model
+
 class MyUserManager(UserManager):
     def _create_user(self, username, email, password, **extra_fields):
         """
@@ -55,6 +58,7 @@ class MyUserManager(UserManager):
 class User(AbstractBaseUser, PermissionsMixin, TrackingModel):
     username_validator = UnicodeUsernameValidator()
 
+    user_type = models.IntegerField(default=0, unique=False) #0 for customers and 1 for resturant
     username = models.CharField(
         _('username'),
         max_length=150,
@@ -65,9 +69,7 @@ class User(AbstractBaseUser, PermissionsMixin, TrackingModel):
             'unique': _("A user with that username already exists."),
         },
     )
-    first_name = models.CharField(_('first name'), max_length=150, blank=True)
-    last_name = models.CharField(_('last name'), max_length=150, blank=True)
-    email = models.EmailField(_('email address'), blank=True, unique = True)
+    email = models.EmailField(_('email address'), blank=False, unique=True)
     is_staff = models.BooleanField(
         _('staff status'),
         default=False,
@@ -82,9 +84,6 @@ class User(AbstractBaseUser, PermissionsMixin, TrackingModel):
         ),
     )
     date_joined = models.DateTimeField(_('date joined'), default=timezone.now)
-
-    objects = MyUserManager()
-
     email_verified = models.BooleanField(
         _('email_verified'),
         default=False,
@@ -92,16 +91,25 @@ class User(AbstractBaseUser, PermissionsMixin, TrackingModel):
             'Designates whether this users email is verified. '
         ),
     )
-    
+    objects = MyUserManager()
 
     EMAIL_FIELD = 'email'
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['email']
+    REQUIRED_FIELDS = ['username']
 
     @property
     def token(self):
-        return ''
+        token = jwt.encode(
+            {
+                'username':self.username,
+                'email': self.email,
+                'exp':datetime.utcnow() + timedelta(hours=20),
 
-    class Meta:
-        abstract = True
+                
+                #keep this shortlived and use refresh token
+            },
+            settings.SECRET_KEY,
+            algorithm = 'HS256'
+        )
 
+        return token
