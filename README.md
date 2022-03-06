@@ -1,2 +1,2 @@
 # BC_DeliveryApp
-SmartCampus Boot Camp 1.0 Food Deliver App
+SmartCampus Boot Camp 1.0 Food Delivery App Backend API
